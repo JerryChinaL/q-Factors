@@ -73,14 +73,32 @@ final_output <- roe %>%
   filter(!is.na(ROE)) %>%
   full_join(at, by = c("KYGVKEY", "YYYYMM")) %>%
   mutate(IA = ifelse(is.na(at_lag1), NA, AT / at_lag1)) %>%
-  select(KYGVKEY, YYYYMM, ROE, IA) %>%
+  select(KYGVKEY, YYYYMM, ROE, IA, RDQ) %>%
   filter(!is.na(YYYYMM))
 
-duplicate_rows <- at %>%
-  group_by(KYGVKEY, YYYYMM) %>%
-  filter(n() > 1) %>%
-  ungroup()
+# View(final_output %>% filter(RDQ > YYYYMM*100 + 600))
+# library(lubridate)
+# final_output <- final_output %>%
+#   mutate(YYYYMM_date = as.Date(paste0(YYYYMM, "01"), "%Y%m%d"))
+# 
+# # Convert RDQ to Date format
+# final_output <- final_output %>%
+#   mutate(RDQ_date = as.Date(as.character(RDQ), "%Y%m%d"))
+# 
+# # Filter for rows where RDQ_date is more than 6 months after YYYYMM_date
+# filtered_output <- final_output %>%
+#   filter(RDQ_date > (YYYYMM_date %m+% months(3)))
+# 
+# # View the filtered output
+# View(filtered_output)
+# 
+# View(final_output %>% filter(RDQ == min(roe$RDQ, na.rm = TRUE)))
+# 
+# duplicate_rows <- at %>%
+#   group_by(KYGVKEY, YYYYMM) %>%
+#   filter(n() > 1) %>%
+#   ungroup()
 
 # View(roe %>% filter(KYGVKEY  == 5792))
 
-write.csv(final_output, "data/ROE_IA.csv", row.names = FALSE)
+saveRDS(final_output, "data/ROE_IA.rds")

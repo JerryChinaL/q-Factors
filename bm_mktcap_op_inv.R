@@ -10,9 +10,10 @@
 library(readxl)
 library(dplyr)
 library(lubridate)
+library(zoo)
 
 mktcap <- read.csv("../FF5_Replciation/mkt_cap/mktcap_combined.csv")
-roe_ia <- read.csv("data/ROE_IA.csv")
+roe_ia <- readRDS("data/ROE_IA.rds")
 mthret <- read.csv("../FF5_Replciation/four_factor_combined/data/mthret.csv")
 exch <- readRDS("../FF5_Replciation/mkt_cap/data/sfz_agg_mth_short.rds") %>% 
   select(KYPERMNO, YYYYMM, PRIMEXCH)
@@ -35,20 +36,72 @@ mthret <- mthret %>%
   inner_join(primiss, by = c("KYPERMNO", "YYYYMM")) %>% # use primary stock
   select(KYPERMNO, KYGVKEY, YYYYMM, MTHRET, return_date = MCALDT, PRIMEXCH)
 
+# Create the value column for value-weighted portfolios
 size <- mktcap %>%
   mutate(SIZE = coalesce(MKVALTQ, MTHCAP, CSHOQ_PRCCM)) %>%
   filter(!is.na(SIZE) & SIZE != 0) %>%
   select(KYGVKEY, YYYYMM, SIZE) %>%
   group_by(KYGVKEY, YYYYMM) %>%
-  summarize(SIZE = mean(SIZE, na.rm = TRUE)) %>%
-  ungroup() %>%
-  mutate(size_factor)
+  summarize(value = mean(SIZE, na.rm = TRUE)) %>%
+  ungroup()
 
-# Full join (be, op, inv) and mktcap on KYGVKEY and YYYYMM
+# New column of only June value for SIZE factor. Assign it to the next month.
+size <- size %>% 
+  left_join(size %>% filter(YYYYMM %% 100 == 6 & !is.na(value)) %>%
+              select(KYGVKEY, YYYYMM, SIZE = value) %>%
+              mutate(YYYYMM = YYYYMM + 1),
+            by = c("KYGVKEY","YYYYMM"))
+
+# Join SIZE and roe_ia
 combined_df <- size %>%
   left_join(roe_ia, by = c("KYGVKEY", "YYYYMM"))
 
-final_df <- left_join(mthret, combined_df, by = c("KYGVKEY", "sort_date"))
+combined_df <- combined_df %>%
+  mutate(yearly_sort_Date)
+
+# Adjust IA to the next year July, when it would be used
+combined_df <- combined_df %>%
+  left_join(combined_df %>% 
+              select(KYGVKEY, YYYYMM, IA_shifted = IA) %>%
+              filter(!is.na(IA_shifted)) %>%
+              mutate(YYYYMM = 100 * (round(YYYYMM / 100) + 1) + 7),
+            by = c("KYGVKEY", "YYYYMM"))
+
+# Define a custom function for limited forward fill
+limited_forward_fill <- function(x, limit) {
+  n <- length(x)
+  for (i in 1:n) {
+    if (is.na(x[i])) {
+      for (j in 1:limit) {
+        if ((i + j) <= n && !is.na(x[i + j])) {
+          x[i] <- x[i + j]
+          break
+        }
+      }
+    }
+  }
+  return(x)
+}
+
+# Create a function to generate a complete sequence of months
+complete_month_sequence <- function(df) {
+  start_date <- min(df$YYYYMM)
+  end_date <- max(df$YYYYMM)
+  complete_dates <- data.frame(YYYYMM = seq(from = start_date, to = end_date, by = 1))
+  return(complete_dates)
+}
+
+# Apply the custom forward fill function to ROE
+combined_df <- combined_df %>%
+  group_by(KYGVKEY) %>%
+  complete(YYYYMM = full_seq(YYYYMM, 1)) %>%  # Create a complete sequence of months
+  arrange(KYGVKEY, YYYYMM) %>%
+  mutate(ROE_shifted = limited_forward_fill(ROE, 6)) %>%
+  filter(!is.na(ROE_shifted)) %>%  # Remove rows added by complete() that are still NA
+  ungroup()
+
+
+final_df <- left_join(mthret, combined_df, by = c("KYGVKEY", "YYYYMM"))
 
 # add the excess return column by appending rf rate then subtracting.
 rf_data <- read.csv("../FF5_Replciation/monthly_rf.csv")
