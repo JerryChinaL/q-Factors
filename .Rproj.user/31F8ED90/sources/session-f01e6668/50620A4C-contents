@@ -1,0 +1,115 @@
+##############
+
+# This file joins the be_op_inv output with the mktcap data to calculate the SIZE and bm factor.
+# It also joins with the mthret and rf-return data to calculate the excess return. 
+
+#The final dataframe only contains rows with non-empty returns, stocks in NAQ exchanges, and primary stocks.
+
+##############
+
+library(readxl)
+library(dplyr)
+library(lubridate)
+library(zoo)
+
+mktcap <- read.csv("../FF5_Replciation/mkt_cap/mktcap_combined.csv")
+roe_ia <- read.csv("data/ROE_IA.csv")
+mthret <- read.csv("../FF5_Replciation/four_factor_combined/data/mthret.csv")
+exch <- readRDS("../FF5_Replciation/mkt_cap/data/sfz_agg_mth_short.rds") %>% 
+  select(KYPERMNO, YYYYMM, PRIMEXCH)
+primiss_files <- c("6070", "7078", "7885", "8590", "9095", "9500", "0004", "0408", "p0812", "p1216","p1620","p2023")
+primiss_files <- paste0("../FF5_Replciation/four_factor_combined/primiss/", primiss_files, "_ms.xlsx")
+primiss <- bind_rows(lapply(primiss_files, read_excel))
+
+primiss <- primiss %>%
+  mutate(
+    DATADATE = as.Date(as.character(DATADATE), "%Y-%m-%d"),
+    YYYYMM = as.numeric(format(DATADATE, "%Y%m"))
+  ) %>% 
+  filter(PRIMISS == 'P') %>% 
+  select(KYPERMNO, YYYYMM) %>% 
+  distinct()
+
+mthret <- mthret %>%
+  left_join(exch, by = c("KYPERMNO", "YYYYMM")) %>%
+  filter(PRIMEXCH == "N" | PRIMEXCH == "A" | PRIMEXCH == "Q") %>%
+  inner_join(primiss, by = c("KYPERMNO", "YYYYMM")) %>% # use primary stock
+  select(KYPERMNO, KYGVKEY, YYYYMM, MTHRET, return_date = MCALDT, PRIMEXCH)
+
+# Create the value column for value-weighted portfolios
+size <- mktcap %>%
+  mutate(SIZE = coalesce(MKVALTQ, MTHCAP, CSHOQ_PRCCM)) %>%
+  filter(!is.na(SIZE) & SIZE != 0) %>%
+  select(KYGVKEY, YYYYMM, SIZE) %>%
+  group_by(KYGVKEY, YYYYMM) %>%
+  summarize(value = mean(SIZE, na.rm = TRUE)) %>%
+  ungroup()
+
+# New column of only June value for SIZE factor. Assign it to the next month.
+size <- size %>% 
+  left_join(size %>% filter(YYYYMM %% 100 == 6 & !is.na(value)) %>%
+              select(KYGVKEY, YYYYMM, SIZE = value) %>%
+              mutate(YYYYMM = YYYYMM + 1),
+            by = c("KYGVKEY","YYYYMM"))
+
+# Join SIZE and roe_ia
+combined_df <- size %>%
+  left_join(roe_ia, by = c("KYGVKEY", "YYYYMM"))
+
+# Adjust IA to the next year July, when it would be used
+combined_df <- combined_df %>%
+  left_join(combined_df %>% 
+              select(KYGVKEY, YYYYMM, IA_shifted = IA) %>%
+              filter(!is.na(IA_shifted)) %>%
+              mutate(YYYYMM = 100 * (round(YYYYMM / 100) + 1) + 7),
+            by = c("KYGVKEY", "YYYYMM"))
+
+# Define a custom function for limited forward fill
+limited_forward_fill <- function(x, limit) {
+  n <- length(x)
+  for (i in 1:n) {
+    if (is.na(x[i])) {
+      for (j in 1:limit) {
+        if ((i + j) <= n && !is.na(x[i + j])) {
+          x[i] <- x[i + j]
+          break
+        }
+      }
+    }
+  }
+  return(x)
+}
+
+# Create a function to generate a complete sequence of months
+complete_month_sequence <- function(df) {
+  start_date <- min(df$YYYYMM)
+  end_date <- max(df$YYYYMM)
+  complete_dates <- data.frame(YYYYMM = seq(from = start_date, to = end_date, by = 1))
+  return(complete_dates)
+}
+
+# Apply the custom forward fill function to ROE
+combined_df <- combined_df %>%
+  group_by(KYGVKEY) %>%
+  complete(YYYYMM = full_seq(YYYYMM, 1)) %>%  # Create a complete sequence of months
+  arrange(KYGVKEY, YYYYMM) %>%
+  mutate(ROE_shifted = limited_forward_fill(ROE, 6)) %>%
+  filter(!is.na(ROE_shifted)) %>%  # Remove rows added by complete() that are still NA
+  ungroup()
+
+
+final_df <- left_join(mthret, combined_df, by = c("KYGVKEY", "YYYYMM"))
+
+# add the excess return column by appending rf rate then subtracting.
+rf_data <- read.csv("../FF5_Replciation/monthly_rf.csv")
+hxz_factors_excet <- final_df %>% 
+  mutate(rf_date = format(as.Date(return_date), "%Y%m")) %>%
+  left_join(rf_data %>% mutate(rf_date = as.character(X)) %>% select(rf_date, RF), by = c("rf_date")) %>%
+  select(-c(rf_date)) %>%
+  mutate(excess_return = MTHRET - (RF/100))
+
+write.csv(four_factors_excret, "data/four_factors_excret.csv", row.names = FALSE)
+
+# View the final dataframe for inspection
+View(final_df %>% filter(KYGVKEY == 1690))
+
