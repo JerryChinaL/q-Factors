@@ -65,8 +65,7 @@ value <- mktcap %>%
   select(-YYYYMM_date)
 
 roe_extended <- roe_extended %>%
-  inner_join(value, by = c("KYGVKEY", "monthly_date" = "sort_date")) %>%
-  select(-sort_date)
+  inner_join(value, by = c("KYGVKEY", "monthly_date" = "sort_date"))
 
 # Define the function to assign portfolios
 assign_portfolio <- function(data, sorting_variable, percentiles) {
@@ -97,47 +96,47 @@ roe_extended <- roe_extended %>%
   sort_date = as.Date(sort_date))
 
 # # Apply the portfolio assignment
-# portfolios <- roe_extended %>%
-#   inner_join(ia_size_portfolios, by = c("KYPERMNO", "KYGVKEY" , "sort_date")) %>%
-#   group_by(monthly_date) %>%
-#   mutate(
-#     portfolio_roe = assign_portfolio(
-#       data = pick(everything()),
-#       sorting_variable = ROE,
-#       percentiles = c(0, 0.3, 0.7, 1)
-#     )
-#   ) %>%
-#   ungroup() %>%
-#   select(KYPERMNO, KYGVKEY, monthly_date, portfolio_roe, portfolio_size, portfolio_ia, SIZE = SIZE.x)
-  
-  # Apply the portfolio assignment
 portfolios <- roe_extended %>%
-  inner_join(ia_size_portfolios, by = c("KYPERMNO", "KYGVKEY" , "sort_date")) %>%
+  left_join(ia_size_portfolios, by = c("KYPERMNO", "KYGVKEY" , "sort_date")) %>%
   group_by(monthly_date) %>%
-  mutate(
-    portfolio_size = assign_portfolio(
-      data = pick(everything()),
-      sorting_variable = SIZE.x,
-      percentiles = c(0, 0.5, 1)
-    )
-  ) %>%
-  group_by(portfolio_size) %>%
   mutate(
     portfolio_roe = assign_portfolio(
       data = pick(everything()),
       sorting_variable = ROE,
       percentiles = c(0, 0.3, 0.7, 1)
-    ),
-    portfolio_ia = assign_portfolio(
-      data = pick(everything()),
-      sorting_variable = IA,
-      percentiles = c(0, 0.3, 0.7, 1)
     )
   ) %>%
   ungroup() %>%
   select(KYPERMNO, KYGVKEY, monthly_date, portfolio_roe, portfolio_size, portfolio_ia, SIZE = SIZE.x)
+  
+  # Apply the portfolio assignment
+# portfolios <- roe_extended %>%
+#   left_join(ia_size_portfolios, by = c("KYPERMNO", "KYGVKEY" , "sort_date")) %>%
+#   group_by(monthly_date) %>%
+#   mutate(
+#     portfolio_size = assign_portfolio(
+#       data = pick(everything()),
+#       sorting_variable = SIZE.x,
+#       percentiles = c(0, 0.5, 1)
+#     )
+#   ) %>%
+#   group_by(portfolio_size) %>%
+#   mutate(
+#     portfolio_roe = assign_portfolio(
+#       data = pick(everything()),
+#       sorting_variable = ROE,
+#       percentiles = c(0, 0.3, 0.7, 1)
+#     ),
+#     portfolio_ia = assign_portfolio(
+#       data = pick(everything()),
+#       sorting_variable = IA,
+#       percentiles = c(0, 0.3, 0.7, 1)
+#     )
+#   ) %>%
+#   ungroup() %>%
+#   select(KYPERMNO, KYGVKEY, monthly_date, portfolio_roe, portfolio_size, portfolio_ia, SIZE = SIZE.x)
 
-saveRDS(portfolios, "data/final_portfolios2.rds")
+saveRDS(portfolios, "data/final_portfolios.rds")
 
 
 

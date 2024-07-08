@@ -24,19 +24,9 @@ mktcap <- mktcap %>%
   mutate(sort_date = 10000* (round(YYYYMM / 100) + 1) + 701,
          sort_date = as.Date(as.character(sort_date), format = "%Y%m%d"))
 
-# duplicates <- ia_size_extended %>%
-#   group_by(KYPERMNO, sort_date) %>%
-#   filter(n() > 1) %>%
-#   ungroup()
-
 ia_size <- mktcap %>%
-  inner_join(ia, by = c("sort_date", "KYGVKEY")) %>%
+  left_join(ia, by = c("sort_date", "KYGVKEY")) %>%
   select(KYGVKEY, sort_date, IA, SIZE)
-
-# duplicates2 <- ia_size_portfolios %>%
-#   group_by(KYPERMNO, sort_date) %>%
-#   filter(n() > 1) %>%
-#   ungroup()
 
 ia_size_extended <- permno_data %>%
   mutate(sort_date = as.Date(sort_date)) %>%
