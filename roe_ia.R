@@ -73,7 +73,7 @@ final_output <- roe %>%
   filter(!is.na(ROE)) %>%
   full_join(at, by = c("KYGVKEY", "YYYYMM")) %>%
   mutate(IA = ifelse(is.na(at_lag1), NA, AT / at_lag1)) %>%
-  select(KYGVKEY, YYYYMM, ROE, IA, RDQ) %>%
+  select(KYGVKEY, YYYYMM, ROE, IA, RDQ, FYYYYQ) %>%
   filter(!is.na(YYYYMM))
 
 # View(final_output %>% filter(RDQ > YYYYMM*100 + 600))
