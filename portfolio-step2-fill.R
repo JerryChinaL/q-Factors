@@ -11,8 +11,8 @@ ia_size_portfolios <- readRDS("data/ia_size_portfolios.rds")
 roe <- roe_file %>%
   mutate(
     YYYYMM = ymd(paste0(YYYYMM, "01")),
-    RDQ = ymd(as.character(RDQ)),
-    # RDQ = if_else(is.na(RDQ), YYYYMM + months(6) + days(2), ymd(as.character(RDQ))),
+    # RDQ = ymd(as.character(RDQ)),
+    RDQ = if_else(is.na(RDQ), YYYYMM + months(5) + days(2), ymd(as.character(RDQ))),
     RDQ_next = ceiling_date(RDQ, "month")
   ) %>%
   filter(!is.na(ROE) & !is.na(RDQ)) %>%
@@ -51,7 +51,7 @@ roe_extended <- mthret %>%
   mutate(monthly_date = floor_date(as.Date(return_date), unit = "month")) %>%
   select(-MTHRET) %>%
   inner_join(roe_with_dates, by = c("KYGVKEY", "monthly_date"))
- 
+
 value <- mktcap %>%
   mutate(SIZE = coalesce(MKVALTQ, MTHCAP, CSHOQ_PRCCM)) %>%
   filter(!is.na(SIZE) & SIZE != 0) %>%
@@ -69,20 +69,26 @@ roe_extended <- roe_extended %>%
   inner_join(value, by = c("KYGVKEY", "monthly_date" = "sort_date"))
 
 # Define the function to assign portfolios
-assign_portfolio <- function(data, sorting_variable, percentiles) {
-  if (all(is.na(data[[deparse(substitute(sorting_variable))]]))) {
+assign_portfolio <- function(data, sorting_variable, percentiles, min_points = 2) {
+  # Extract the non-NA values of the sorting variable
+  variable <- data %>%
+    filter(!is.na({{ sorting_variable }})) %>%
+    pull({{ sorting_variable }})
+  
+  # Check if there are enough data points
+  if (length(variable) < min_points) {
     return(rep(NA, nrow(data)))
   }
-  breakpoints <- data %>%
-    filter(PRIMEXCH == "N") %>%
-    filter(!is.na({{ sorting_variable }})) %>%
-    pull({{ sorting_variable }}) %>%
-    quantile(probs = percentiles, na.rm = TRUE, names = FALSE)
   
-  assigned_portfolios <- findInterval(data[[deparse(substitute(sorting_variable))]], breakpoints, all.inside = TRUE)
+  # Calculate the breakpoints
+  breakpoints <- quantile(variable, probs = percentiles, na.rm = TRUE, names = FALSE)
+  
+  # Assign portfolios based on the breakpoints
+  assigned_portfolios <- findInterval(data %>% pull({{ sorting_variable }}), breakpoints, all.inside = TRUE)
   
   return(assigned_portfolios)
 }
+
 
 roe_extended <- roe_extended %>%
   mutate(sort_date = case_when(
@@ -90,6 +96,8 @@ roe_extended <- roe_extended %>%
     month(monthly_date) >= 7 ~ paste0(year(monthly_date), "-07-01")
   ),
   sort_date = as.Date(sort_date))
+
+View(roe_extended %>% filter(monthly_date == "1965-12-01"))
 
 # # Apply the portfolio assignment
 portfolios <- roe_extended %>%
@@ -104,8 +112,8 @@ portfolios <- roe_extended %>%
   ) %>%
   ungroup() %>%
   select(KYPERMNO, KYGVKEY, monthly_date, portfolio_roe, portfolio_size, portfolio_ia, SIZE = SIZE.x)
-  
-  # Apply the portfolio assignment
+
+# Apply the portfolio assignment
 # portfolios <- roe_extended %>%
 #   left_join(ia_size_portfolios, by = c("KYPERMNO", "KYGVKEY" , "sort_date")) %>%
 #   group_by(monthly_date) %>%
@@ -132,7 +140,7 @@ portfolios <- roe_extended %>%
 #   ungroup() %>%
 #   select(KYPERMNO, KYGVKEY, monthly_date, portfolio_roe, portfolio_size, portfolio_ia, SIZE = SIZE.x)
 
-saveRDS(portfolios, "data/final_portfolios.rds")
+saveRDS(portfolios, "data/final_portfolios_filledRDQ.rds")
 
 
 
