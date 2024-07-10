@@ -1,7 +1,7 @@
 library(dplyr)
 
 mthret <- readRDS("data/mthret_filtered.rds")
-portfolios <- readRDS("data/final_portfolios_filledRDQ.rds")
+portfolios <- readRDS("data/final_portfolios.rds")
 
 portfolios_w_return <- mthret %>%
   select(KYPERMNO, KYGVKEY, return_date, MTHRET, YYYYMM) %>%
@@ -70,4 +70,4 @@ factors_replicated <- portfolios_w_return %>%
 print(head(factors_replicated))
 
 # Save the factors to a CSV file if needed
-write.csv(factors_replicated, "data/3-factors_fill.csv", row.names = FALSE)
+write.csv(factors_replicated, "data/3-factors.csv", row.names = FALSE)

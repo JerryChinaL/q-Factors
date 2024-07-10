@@ -5,6 +5,8 @@ roe_file <- readRDS("data/ROE_IA.rds")
 mktcap <- read.csv("../FF5_Replciation/mkt_cap/mktcap_combined.csv")
 mthret <- readRDS("data/mthret_filtered.rds")
 
+# View(roe_file %>% filter(!is.na(ROE) & !is.na(IA)))
+
 permno_data <- mthret %>%
   filter(round(YYYYMM %% 100) == 7)
 
