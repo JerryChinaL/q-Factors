@@ -13,6 +13,7 @@ portfolios_w_return <- mthret %>%
 # Calculate the factors according to the provided formula using weighted mean with SIZE
 factors_replicated <- portfolios_w_return %>%
   group_by(sort_date) %>%
+  mutate(SIZE = ifelse(is.na(SIZE), 0, SIZE)) %>%
   summarize(
     SAH = weighted.mean(MTHRET[portfolio_size == 1 & portfolio_ia == 3 & portfolio_roe == 3], 
                         SIZE[portfolio_size == 1 & portfolio_ia == 3 & portfolio_roe == 3], na.rm = TRUE),  # small, aggressive, high roe
