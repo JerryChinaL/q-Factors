@@ -80,7 +80,7 @@ factor_sets <- list(
 )
 
 # Define file paths
-file_paths <- c("fixed/data/table6_vol_ep_ret.rds", "fixed/data/table6_vol_emp_ret.rds", "fixed/data/table6_ol_volm_ret.rds")
+file_paths <- c("fixed/data/table6_vol_ia_ret.rds", "fixed/data/table6_vol_roe_ret.rds")
 
 # Perform the GRS test for each file and combine the results
 all_final_results <- lapply(file_paths, perform_grs_test, factor_sets = factor_sets)

@@ -24,9 +24,9 @@ assign_portfolio <- function(data, sorting_variable, percentiles) {
 portfolios_5x5 <- factors %>%
   group_by(monthly_date) %>%
   mutate(
-    portfolio_size = assign_portfolio(
+    portfolio_vol = assign_portfolio(
       data = pick(everything()),
-      sorting_variable = SIZE,
+      sorting_variable = VOL,
       percentiles = c(0, 0.2, 0.4, 0.6, 0.8, 1)
     ),
     portfolio_roe = assign_portfolio(
@@ -41,7 +41,7 @@ portfolios_5x5 <- factors %>%
     )
   ) %>%
   ungroup() %>%
-  select(KYPERMNO, YYYYMM = monthly_date, MTHRET, SIZE, portfolio_size, portfolio_roe, portfolio_ia)
+  select(KYPERMNO, YYYYMM = monthly_date, MTHRET, VOL, portfolio_vol, portfolio_roe, portfolio_ia)
 
 # Convert YYYYMM to Date format
 portfolios_5x5 <- portfolios_5x5 %>% mutate(YYYYMM = as.Date(paste0(YYYYMM, "-01")))
@@ -60,18 +60,18 @@ variables <- c("ia", "roe")
 for (var in variables) {
   # Filter for non-NA values at the beginning of the loop
   portfolios_5x5_filtered <- portfolios_5x5 %>%
-    filter(!is.na(!!sym(paste0("portfolio_", var))) & !is.na(SIZE) & !is.na(MTHRET),
+    filter(!is.na(!!sym(paste0("portfolio_", var))) & !is.na(VOL) & !is.na(MTHRET),
            YYYYMM >= as.Date("1968-01-01") & YYYYMM <= as.Date("2018-12-31"))
   
   # Calculate the average monthly return for each quantile pair for each month
   monthly_grid <- portfolios_5x5_filtered %>%
-    group_by(YYYYMM, portfolio_size, !!sym(paste0("portfolio_", var))) %>%
-    mutate(SIZE_weight = ifelse(is.na(SIZE), 0, SIZE)) %>%
-    summarize(avg_monthly_return = weighted.mean(MTHRET, SIZE_weight, na.rm = TRUE), .groups = "drop")
+    group_by(YYYYMM, portfolio_vol, !!sym(paste0("portfolio_", var))) %>%
+    mutate(VOL_weight = ifelse(is.na(VOL), 0, VOL)) %>%
+    summarize(avg_monthly_return = weighted.mean(MTHRET, VOL_weight, na.rm = TRUE), .groups = "drop")
   
   # Pivot the data to a wider format
   monthly_grid_wide <- monthly_grid %>%
-    unite("quantile", portfolio_size, !!sym(paste0("portfolio_", var)), sep = "") %>%
+    unite("quantile", portfolio_vol, !!sym(paste0("portfolio_", var)), sep = "") %>%
     pivot_wider(names_from = quantile, values_from = avg_monthly_return) %>%
     rename_with(~ paste0("f", .), -YYYYMM)
   
@@ -95,13 +95,13 @@ for (var in variables) {
   final_matrix <- matrix(
     as.numeric(final_grid[1, ]),
     nrow = 5, ncol = 5, byrow = TRUE,
-    dimnames = list(paste0("SIZE_", 1:5), paste0(var, "_", 1:5))
+    dimnames = list(paste0("VOL_", 1:5), paste0(var, "_", 1:5))
   )
   
   t_stat_matrix <- matrix(
     as.numeric(t_stats[1, ]),
     nrow = 5, ncol = 5, byrow = TRUE,
-    dimnames = list(paste0("SIZE_", 1:5), paste0(var, "_", 1:5))
+    dimnames = list(paste0("VOL_", 1:5), paste0(var, "_", 1:5))
   )
   
   print("5x5 grid:")
@@ -112,9 +112,9 @@ for (var in variables) {
   print(t_stat_matrix)
   
   # Save the files
-  write.csv(format(as.data.frame(monthly_grid_wide), scientific = FALSE), paste0("fixed/data/5x5_monthly_size_", var, ".csv"), row.names = FALSE)
-  write.csv(format(as.data.frame(100 * final_matrix), scientific = FALSE), paste0("fixed/data/5x5_size_", var, ".csv"), row.names = TRUE)
-  write.csv(format(as.data.frame(t_stat_matrix), scientific = FALSE), paste0("fixed/data/5x5_tstat_size_", var, ".csv"), row.names = TRUE)
+  write.csv(format(as.data.frame(monthly_grid_wide), scientific = FALSE), paste0("fixed/data/5x5_monthly_vol_", var, ".csv"), row.names = FALSE)
+  write.csv(format(as.data.frame(100 * final_matrix), scientific = FALSE), paste0("fixed/data/5x5_vol_", var, ".csv"), row.names = TRUE)
+  write.csv(format(as.data.frame(t_stat_matrix), scientific = FALSE), paste0("fixed/data/5x5_tstat_vol_", var, ".csv"), row.names = TRUE)
 }
 
 # Function to mark bold if significant
@@ -139,8 +139,8 @@ mark_bold <- function(means, tstats, alpha) {
 latex_sections <- ""
 
 for (var in variables) {
-  means <- read.csv(paste0("fixed/data/5x5_size_", var, ".csv"), row.names = 1)
-  tstats <- read.csv(paste0("fixed/data/5x5_tstat_size_", var, ".csv"), row.names = 1)
+  means <- read.csv(paste0("fixed/data/5x5_vol_", var, ".csv"), row.names = 1)
+  tstats <- read.csv(paste0("fixed/data/5x5_tstat_vol_", var, ".csv"), row.names = 1)
   
   # Mark bold significant values
   panel <- mark_bold(as.matrix(means), as.matrix(tstats), alpha = 0.05)

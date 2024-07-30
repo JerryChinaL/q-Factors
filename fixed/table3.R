@@ -1,5 +1,6 @@
 library(dplyr)
 
+# Load the factors data
 factors_replicated <- read.csv("data/3-factors-fixed.csv") %>%
   mutate(monthly_date = as.Date(monthly_date)) %>%
   select(monthly_date, r_vol = SMB, r_roe = HML, r_ia = CMA)
@@ -37,17 +38,64 @@ summary_stats_table <- data.frame(
   r_roe = c(mean_r_roe, sd_r_roe, t_r_roe)
 )
 
-# Panel B: Correlation Matrix for the Five Factors
+# Panel B: Correlation Matrix for the Factors
 cor_matrix_five_factors <- factors_filtered %>%
   select(r_mkt, r_vol, r_ia, r_roe) %>%
   cor(use = "pairwise.complete.obs")
 
+# Format numbers to two decimal places
+summary_stats_table_formatted <- summary_stats_table %>%
+  mutate(across(-Statistic, ~ sprintf("%.2f", .)))
+
+cor_matrix_five_factors_formatted <- apply(cor_matrix_five_factors, 2, function(x) sprintf("%.2f", x))
+
+# LaTeX Table Generation
+latex_output <- paste0("
+\\documentclass{article}
+\\usepackage{geometry}
+\\geometry{letterpaper, margin=1in}
+\\usepackage{array}
+\\usepackage{booktabs}
+\\usepackage{float}
+
+\\begin{document}
+
+Factor return summary 1968-2018
+
+\\begin{table}[H]
+\\small
+\\begin{tabular}{p{4.5cm} p{2cm} p{2cm} p{2cm} p{2cm}}
+\\hline
+\\multicolumn{5}{l}{Panel A: Summary statistics of the factors} \\\\
+ & $MKT_R$ & $VOL_R$ & $IA_R$ & $ROE_R$ \\\\
+ \\hline
+Arithmetic mean & ", paste(summary_stats_table_formatted$r_mkt[1], summary_stats_table_formatted$r_vol[1], summary_stats_table_formatted$r_ia[1], summary_stats_table_formatted$r_roe[1], sep = " & "), " \\\\
+Standard deviation & ", paste(summary_stats_table_formatted$r_mkt[2], summary_stats_table_formatted$r_vol[2], summary_stats_table_formatted$r_ia[2], summary_stats_table_formatted$r_roe[2], sep = " & "), " \\\\
+T-statistic & ", paste(summary_stats_table_formatted$r_mkt[3], summary_stats_table_formatted$r_vol[3], summary_stats_table_formatted$r_ia[3], summary_stats_table_formatted$r_roe[3], sep = " & "), " \\\\
+\\\
+\\multicolumn{5}{l}{Panel B: Correlation matrix for the factors} \\\\
+ & $MKT_R$ & $VOL_R$ & $IA_R$ & $ROE_R$ \\\\
+ \\hline
+$MKT_R$ & ", paste(cor_matrix_five_factors_formatted[1, ], collapse = " & "), " \\\\
+$VOL_R$ & ", paste(cor_matrix_five_factors_formatted[2, ], collapse = " & "), " \\\\
+$IA_R$ & ", paste(cor_matrix_five_factors_formatted[3, ], collapse = " & "), " \\\\
+$ROE_R$ & ", paste(cor_matrix_five_factors_formatted[4, ], collapse = " & "), " \\\\
+\\hline
+\\end{tabular}
+\\end{table}
+
+\\end{document}
+")
+
+# Print the LaTeX table
+cat(latex_output)
+
 # Print Panel A
-cat("Panel A: Summary Statistics of the Five Factors\n")
+cat("Panel A: Summary Statistics of the Factors\n")
 print(summary_stats_table)
 
 # Print Panel B
-cat("\nPanel B: Correlation Matrix for the Five Factors\n")
+cat("\nPanel B: Correlation Matrix for the Factors\n")
 print(cor_matrix_five_factors)
 
 # Save the tables to CSV files
