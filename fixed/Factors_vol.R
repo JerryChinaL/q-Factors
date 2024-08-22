@@ -1,3 +1,4 @@
+rm(list = ls())
 library(dplyr)
 
 portfolios <- readRDS("data/final_portfolios_fixed.rds")
@@ -64,4 +65,4 @@ factors_replicated <- portfolios %>%
 print(head(factors_replicated))
 
 # Save the factors to a CSV file if needed
-write.csv(factors_replicated, "data/3-factors-fixed.csv", row.names = FALSE)
+write.csv(factors_replicated, "data/3-factors-fixed_vol.csv", row.names = FALSE)

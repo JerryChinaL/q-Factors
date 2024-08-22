@@ -1,13 +1,17 @@
+rm(list = ls())
+
 library(readxl)
 library(dplyr)
 library(lubridate)
 
 mthret <- read.csv("../FF5_Replciation/four_factor_combined/data/mthret.csv")
-exch <- readRDS("data/sfz_agg_mth_short.rds") %>% 
+exch <- readRDS("../FF5_Replciation/four_factor_combined/data/sfz_agg_mth_short.rds") %>% 
   select(KYPERMNO, YYYYMM, PRIMEXCH)
-primiss_files <- c("6070", "7078", "7885", "8590", "9095", "9500", "0004", "0408", "p0812", "p1216","p1620","p2023")
-primiss_files <- paste0("../HXZ/primiss/", primiss_files, "_ms.xlsx")
-primiss <- bind_rows(lapply(primiss_files, read_excel))
+# primiss_files <- c("6070", "7078", "7885", "8590", "9095", "9500", "0004", "0408", "p0812", "p1216","p1620","p2023")
+# primiss_files <- paste0("../HXZ/primiss/", primiss_files, "_ms.xlsx")
+# primiss <- bind_rows(lapply(primiss_files, read_excel))
+
+primiss <- readRDS("../FF5_Replciation/four_factor_combined/data/primiss.rds")
 
 primiss <- primiss %>%
   mutate(
@@ -29,10 +33,12 @@ mthret <- mthret %>%
   ) %>%
   select(KYPERMNO, KYGVKEY, MTHRET, return_date = MCALDT, PRIMEXCH, YYYYMM)
 
-mthret %>%
-  group_by(KYPERMNO, YYYYMM) %>%
-  filter(n() > 1) %>%
-  ungroup() %>%
-  select(KYPERMNO, KYGVKEY) %>%
-  distinct() %>%
-  View("mthret duplicates")
+# mthret %>%
+#   group_by(KYPERMNO, YYYYMM) %>%
+#   filter(n() > 1) %>%
+#   ungroup() %>%
+#   select(KYPERMNO, KYGVKEY) %>%
+#   distinct() %>%
+#   View("mthret duplicates")
+
+saveRDS(mthret, "data/mthret_filtered2.rds")

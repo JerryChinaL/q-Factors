@@ -1,4 +1,4 @@
-
+rm(list = ls())
 ###################
 
 # This file is used to prepare data for HXZ
@@ -10,7 +10,7 @@ library(dplyr)
 library(tidyr)
 
 # All variables needed for ROE
-roe_files <- c("./data/6500_qi.xlsx", "./data/0023_qi.xlsx")
+roe_files <- c("./data/6200_2_qi.xlsx", "./data/0024_2_qi.xlsx")
 roe <- bind_rows(lapply(roe_files, read_excel))
 
 at <- read_excel("data/AT_ai.xlsx")

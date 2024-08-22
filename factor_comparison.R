@@ -7,8 +7,8 @@ library(gridExtra)
 q_original <- read.csv("data/q5_factors_monthly_2023.csv") %>%
   mutate(sort_date = as.Date(sprintf("%d-%02d-01", year, month), "%Y-%m-%d"))
 
-q3 <- read.csv("data/3-factors.csv") %>%
-  mutate(sort_date = as.Date(sort_date)) %>%
+q3 <- read.csv("data/3-factors-fixed.csv") %>%
+  mutate(sort_date = as.Date(monthly_date)) %>%
   select(sort_date, R_ME = SMB, R_ROE = HML, R_IA = CMA)
 
 # Join the datasets on the common YYYYMM values

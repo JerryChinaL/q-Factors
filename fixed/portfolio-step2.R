@@ -1,3 +1,4 @@
+rm(list = ls())
 library(readxl)
 library(dplyr)
 library(lubridate)
@@ -7,7 +8,7 @@ roe_file <- readRDS("data/ROE_IA.rds")
 mktcap <- read.csv("../FF5_Replciation/mkt_cap/mktcap_combined.csv")
 ia_size_portfolios <- readRDS("data/ia_size_portfolios_fixed.rds")
 
-primiss <- readRDS("../ELM/data/primiss.rds") %>%
+primiss <- readRDS("../FF5_Replciation/four_factor_combined/data/primiss.rds") %>%
   mutate(monthly_date = floor_date(DATADATE, "month")) %>%
   filter(PRIMISS == "P") %>%
   distinct()

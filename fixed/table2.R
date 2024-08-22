@@ -1,5 +1,9 @@
+rm(list = ls())
 library(dplyr)
 library(tidyr)
+
+min_date <- as.Date("1968-01-01")
+max_date <- as.Date("2018-12-31")
 
 # Load the data
 factors <- readRDS("data/final_portfolios_fixed.rds")
@@ -61,7 +65,7 @@ for (var in variables) {
   # Filter for non-NA values at the beginning of the loop
   portfolios_5x5_filtered <- portfolios_5x5 %>%
     filter(!is.na(!!sym(paste0("portfolio_", var))) & !is.na(SIZE) & !is.na(MTHRET),
-           YYYYMM >= as.Date("1968-01-01") & YYYYMM <= as.Date("2018-12-31"))
+           YYYYMM >= min_date & YYYYMM <= max_date)
   
   # Calculate the average monthly return for each quantile pair for each month
   monthly_grid <- portfolios_5x5_filtered %>%
@@ -148,11 +152,11 @@ for (var in variables) {
   # Create the LaTeX section for the current variable
   latex_section <- paste0("
  \\multicolumn{4}{l}{Panel ", toupper(var), ": ", toupper(var), " Sorts} & & & & & & & \\\\
- Illiquid &", paste(panel$means[1,], collapse=" & "), "&", paste(panel$tstats[1,], collapse=" & "), "\\\\
+ Small &", paste(panel$means[1,], collapse=" & "), "&", paste(panel$tstats[1,], collapse=" & "), "\\\\
  2 &", paste(panel$means[2,], collapse=" & "), "&", paste(panel$tstats[2,], collapse=" & "), "\\\\
  3 &", paste(panel$means[3,], collapse=" & "), "&", paste(panel$tstats[3,], collapse=" & "), "\\\\
  4 &", paste(panel$means[4,], collapse=" & "), "&", paste(panel$tstats[4,], collapse=" & "), "\\\\
- Liquid &", paste(panel$means[5,], collapse=" & "), "&", paste(panel$tstats[5,], collapse=" & "), "\\\\
+ Big &", paste(panel$means[5,], collapse=" & "), "&", paste(panel$tstats[5,], collapse=" & "), "\\\\
 ")
   
   # Append the section to the overall LaTeX content

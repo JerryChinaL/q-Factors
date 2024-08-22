@@ -14,9 +14,9 @@ MKT_data <- read.csv("data/monthly_rf.csv") %>%
 
 factors <- readRDS("data/final_portfolios_fixed.rds") 
 
-r_factors <- read.csv("data/3-factors-fixed.csv") %>%
+r_factors <- read.csv("data/3-factors-fixed_vol.csv") %>%
   mutate(monthly_date = as.Date(monthly_date)) %>%
-  select(monthly_date, r_size = SMB, r_roe = HML, r_ia = CMA) %>%
+  select(monthly_date, r_vol = SMB, r_roe = HML, r_ia = CMA) %>%
   left_join(MKT_data, by = "monthly_date") %>%
   filter(monthly_date >= date_min & monthly_date <= date_max)
 
@@ -42,9 +42,9 @@ assign_portfolio <- function(data, sorting_variable, percentiles) {
 portfolios_5x5 <- factors %>%
   group_by(monthly_date) %>%
   mutate(
-    portfolio_size = assign_portfolio(
+    portfolio_vol = assign_portfolio(
       data = pick(everything()),
-      sorting_variable = SIZE,
+      sorting_variable = VOL,
       percentiles = c(0, 0.2, 0.4, 0.6, 0.8, 1)
     ),
     portfolio_ia = assign_portfolio(
@@ -59,7 +59,7 @@ portfolios_5x5 <- factors %>%
     )
   ) %>%
   ungroup() %>%
-  select(KYPERMNO, YYYYMM = monthly_date, MTHRET, SIZE, portfolio_size, portfolio_ia, portfolio_roe)
+  select(KYPERMNO, YYYYMM = monthly_date, MTHRET, VOL, portfolio_vol, portfolio_ia, portfolio_roe)
 
 # Add the excess return column by appending rf rate then subtracting.
 portfolios_5x5 <- portfolios_5x5 %>% 
@@ -79,18 +79,18 @@ r_squared_results <- list()
 for (var in variables) {
   # Filter for non-NA values at the beginning of the loop
   portfolios_5x5_filtered <- portfolios_5x5 %>%
-    filter(!is.na(!!sym(paste0("portfolio_", var))) & !is.na(SIZE) & !is.na(MTHRET),
+    filter(!is.na(!!sym(paste0("portfolio_", var))) & !is.na(VOL) & !is.na(MTHRET),
            YYYYMM >= date_min & YYYYMM <= date_max)
   
   # Calculate the average monthly return for each quantile pair for each month
   monthly_grid <- portfolios_5x5_filtered %>%
-    group_by(YYYYMM, portfolio_size, !!sym(paste0("portfolio_", var))) %>%
-    mutate(SIZE_weight = ifelse(is.na(SIZE), 0, SIZE)) %>%
-    summarize(avg_monthly_return = weighted.mean(MTHRET, SIZE_weight, na.rm = TRUE), .groups = "drop")
+    group_by(YYYYMM, portfolio_vol, !!sym(paste0("portfolio_", var))) %>%
+    mutate(VOL_weight = ifelse(is.na(VOL), 0, VOL)) %>%
+    summarize(avg_monthly_return = weighted.mean(MTHRET, VOL_weight, na.rm = TRUE), .groups = "drop")
   
   # Pivot the data to a wider format
   monthly_grid_wide <- monthly_grid %>%
-    unite("quantile", portfolio_size, !!sym(paste0("portfolio_", var)), sep = "") %>%
+    unite("quantile", portfolio_vol, !!sym(paste0("portfolio_", var)), sep = "") %>%
     pivot_wider(names_from = quantile, values_from = avg_monthly_return) %>%
     rename_with(~ paste0("f", .), -YYYYMM)
   
@@ -102,21 +102,21 @@ for (var in variables) {
   # Merge with r_factors
   joined_data <- monthly_grid_wide %>% left_join(r_factors, by = c("YYYYMM" = "monthly_date"))
   
-  saveRDS(joined_data, paste0("fixed/data/table6_size_", var, "_ret.rds"))
+  saveRDS(joined_data, paste0("fixed/data/table6_vol_", var, "_ret.rds"))
   
   # Perform regressions for each quantile pair
   reg_results <- lapply(names(joined_data)[2:26], function(quantile_col) {
-    formula <- as.formula(paste(quantile_col, "~ r_mkt + r_ia + r_roe + r_size"))
+    formula <- as.formula(paste(quantile_col, "~ r_mkt + r_ia + r_roe + r_vol"))
     lm(formula, data = joined_data)
   })
   
   # Extract coefficients and organize into matrices
-  coef_names <- c("(Intercept)", "r_mkt", "r_ia", "r_roe", "r_size")
+  coef_names <- c("(Intercept)", "r_mkt", "r_ia", "r_roe", "r_vol")
   for (coef_name in coef_names) {
     coef_matrix <- matrix(nrow = 5, ncol = 5)
     t_test_matrix <- matrix(nrow = 5, ncol = 5)
-    dimnames(coef_matrix) <- list(paste0("SIZE_", 1:5), paste0(var, "_", 1:5))
-    dimnames(t_test_matrix) <- list(paste0("SIZE_", 1:5), paste0(var, "_", 1:5))
+    dimnames(coef_matrix) <- list(paste0("VOL_", 1:5), paste0(var, "_", 1:5))
+    dimnames(t_test_matrix) <- list(paste0("VOL_", 1:5), paste0(var, "_", 1:5))
     for (i in 1:5) {
       for (j in 1:5) {
         idx <- (i - 1) * 5 + j
@@ -130,7 +130,7 @@ for (var in variables) {
   
   # Extract R-squared values and organize into a matrix
   r_squared_matrix <- matrix(nrow = 5, ncol = 5)
-  dimnames(r_squared_matrix) <- list(paste0("SIZE_", 1:5), paste0(var, "_", 1:5))
+  dimnames(r_squared_matrix) <- list(paste0("VOL_", 1:5), paste0(var, "_", 1:5))
   for (i in 1:5) {
     for (j in 1:5) {
       idx <- (i - 1) * 5 + j
@@ -149,7 +149,7 @@ format_colnames <- function(names) {
 combine_results <- function(coef_name) {
   combined_matrix <- matrix(NA, nrow = 5, ncol = 10)
   colnames(combined_matrix) <- c(paste0("ia_", 1:5), paste0("roe_", 1:5))
-  rownames(combined_matrix) <- paste0("SIZE_", 1:5)
+  rownames(combined_matrix) <- paste0("VOL_", 1:5)
   
   for (var in variables) {
     start_col <- match(paste0(var, "_1"), colnames(combined_matrix))
@@ -169,7 +169,7 @@ combine_results <- function(coef_name) {
 combine_t_stats <- function(coef_name) {
   combined_matrix <- matrix(NA, nrow = 5, ncol = 10)
   colnames(combined_matrix) <- c(paste0("ia_", 1:5), paste0("roe_", 1:5))
-  rownames(combined_matrix) <- paste0("SIZE_", 1:5)
+  rownames(combined_matrix) <- paste0("VOL_", 1:5)
   
   for (var in variables) {
     start_col <- match(paste0(var, "_1"), colnames(combined_matrix))
@@ -194,7 +194,7 @@ format_string_if_contains_underscore <- function(string) {
 generate_latex_table <- function(coef_name, combined_matrix, t_test_matrix) {
   name <- format_string_if_contains_underscore(coef_name)
   body <- paste0(" & \\multicolumn{5}{c|}{$", name, "$} & \\multicolumn{5}{c}{$", name, "$}  \\\\\n")
-  rownames <- c("Small", "2", "3", "4", "Big")
+  rownames <- c("Illiquid", "2", "3", "4", "Liquid")
   for (i in 1:5) {
     body <- paste0(body, rownames[i], " & ")
     for (j in 1:10) {
@@ -216,15 +216,15 @@ generate_latex_table <- function(coef_name, combined_matrix, t_test_matrix) {
 
 
 # Write the LaTeX code to a file
-output_file <- "fixed/data/table4_results.tex"
+output_file <- "fixed/data/table4_results_vol.tex"
 file_conn <- file(output_file, open = "wt")
 
-header <- "\\begin{table}[H]\n\\tiny\n\\centering\n\\begin{tabular}{lccccc|ccccc}\n\\hline\n& \\multicolumn{10}{c}{Five Factors} \\\\ \\hline\n& \\multicolumn{10}{c}{\\tiny $R_{i,t} - R_{F,t} = \\alpha_i+\\beta_i*MKT_{R,t} + \\phi_iSIZE_{R,t}+\\pi_iBM_{R,t} + \\delta_iOP_{R,t}+\\gamma_iINV_{R,t} + \\epsilon_{i,t}$} \\\\ \\hline\nLiquidity & \\multicolumn{5}{c|}{\\textbf{Panel A: IA}} & \\multicolumn{5}{c}{\\textbf{Panel B: ROE}} \\\\\nQuintiles & Low & 2 & 3 & 4 & High & Low & 2 & 3 & 4 & High \\\\  \\hline\n"
+header <- "\\begin{table}[H]\n\\tiny\n\\centering\n\\begin{tabular}{lccccc|ccccc}\n\\hline\n& \\multicolumn{10}{c}{Five Factors} \\\\ \\hline\n& \\multicolumn{10}{c}{\\tiny $R_{i,t} - R_{F,t} = \\alpha_i+\\beta_i*MKT_{R,t} + \\phi_iVOL_{R,t}+\\pi_iBM_{R,t} + \\delta_iOP_{R,t}+\\gamma_iINV_{R,t} + \\epsilon_{i,t}$} \\\\ \\hline\nLiquidity & \\multicolumn{5}{c|}{\\textbf{Panel A: IA}} & \\multicolumn{5}{c}{\\textbf{Panel B: ROE}} \\\\\nQuintiles & Low & 2 & 3 & 4 & High & Low & 2 & 3 & 4 & High \\\\  \\hline\n"
 footer <- "\\end{tabular}\n\\end{table}\n"
 
 cat(header, file = file_conn)
 
-for (coef_name in c("(Intercept)", "r_mkt", "r_ia", "r_roe", "r_size")) {
+for (coef_name in c("(Intercept)", "r_mkt", "r_ia", "r_roe", "r_vol")) {
   combined_matrix <- combine_results(coef_name)
   t_test_matrix <- combine_t_stats(coef_name)
   latex_table <- generate_latex_table(coef_name, combined_matrix, t_test_matrix)

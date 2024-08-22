@@ -76,13 +76,13 @@ perform_grs_test <- function(file_path, factor_sets) {
 
 # Define the different sets of factors
 factor_sets <- list(
-  c("r_mkt", "r_size", "r_ia"),
-  c("r_mkt", "r_size", "r_ia", "r_roe"),
-  c("r_mkt", "r_size", "r_roe")
+  c("r_mkt", "r_vol", "r_ia"),
+  c("r_mkt", "r_vol", "r_ia", "r_roe"),
+  c("r_mkt", "r_vol", "r_roe")
 )
 
 # Define file paths
-file_paths <- c("fixed/data/table6_size_ia_ret.rds", "fixed/data/table6_size_roe_ret.rds")
+file_paths <- c("fixed/data/table6_vol_ia_ret.rds", "fixed/data/table6_vol_roe_ret.rds")
 
 # Perform the GRS test for each file and combine the results
 all_final_results <- lapply(file_paths, perform_grs_test, factor_sets = factor_sets)
@@ -96,7 +96,7 @@ table_latex <- xtable(combined_results)
 print(table_latex)
 
 # Save results to a CSV file
-write.csv(combined_results, "fixed/data/table6_combined_results.csv", row.names = FALSE)
+write.csv(combined_results, "fixed/data/table6_combined_results_vol.csv", row.names = FALSE)
 
 # Print the results for inspection
 print(combined_results)

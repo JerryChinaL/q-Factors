@@ -1,9 +1,10 @@
+rm(list = ls())
 library(dplyr)
 
 portfolios <- readRDS("data/final_portfolios_fixed.rds")
 
 portfolio <- portfolios %>%
-  select(KYPERMNO, monthly_date, MTHRET, SIZE = VOL, ROE, IA)
+  select(KYPERMNO, monthly_date, MTHRET, SIZE, ROE, IA)
 
 # SIZE: S,B ; I/A: a,m,c ; ROE: H, M, L
 # Calculate the factors according to the provided formula using weighted mean with SIZE
