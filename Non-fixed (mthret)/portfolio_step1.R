@@ -5,7 +5,7 @@ library(dplyr)
 
 roe_file <- readRDS("data/ROE_IA.rds")
 mktcap <- read.csv("../FF5_Replciation/mkt_cap/mktcap_combined.csv")
-mthret <- readRDS("data/mthret_filtered.rds")
+mthret <- readRDS("data/mthret_filtered2.rds")
 
 # View(roe_file %>% filter(!is.na(ROE) & !is.na(IA)))
 

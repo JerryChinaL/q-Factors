@@ -4,8 +4,12 @@ library(dplyr)
 min_date <- as.Date("1968-01-01")
 max_date <- as.Date("2018-12-31")
 
+
+min_date <- as.Date("1911-01-01")
+max_date <- as.Date("2222-12-31")
+
 # Load the factors data
-factors_replicated <- read.csv("data/3-factors-fixed_vol.csv") %>%
+factors_replicated <- read.csv("data/3-factors-fixed.csv") %>%
   mutate(monthly_date = as.Date(monthly_date)) %>%
   select(monthly_date, r_vol = SMB, r_roe = HML, r_ia = CMA)
 

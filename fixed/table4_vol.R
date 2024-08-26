@@ -7,6 +7,9 @@ library(xtable)
 date_min <- as.Date("1968-01-01")
 date_max <- as.Date("2018-12-31")
 
+date_min <- as.Date("1911-01-01")
+date_max <- as.Date("2222-12-31")
+
 # Load necessary libraries and data
 MKT_data <- read.csv("data/monthly_rf.csv") %>%
   mutate(monthly_date = as.Date(as.character(X * 100 + 1), format = "%Y%m%d")) %>%

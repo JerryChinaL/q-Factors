@@ -4,6 +4,10 @@ library(GRS.test)
 min_date <- as.Date("1968-01-01")
 max_date <- as.Date("2018-12-31")
 
+
+min_date <- as.Date("1928-01-01")
+max_date <- as.Date("2048-12-31")
+
 # Function to perform GRS test and extract results
 perform_grs_test <- function(file_path, factor_sets) {
   # Load the portfolio returns and factors data

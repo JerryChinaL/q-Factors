@@ -1,6 +1,8 @@
+rm(list = ls())
+
 library(dplyr)
 
-mthret <- readRDS("data/mthret_filtered.rds")
+mthret <- readRDS("data/mthret_filtered2.rds")
 portfolios <- readRDS("data/final_portfolios.rds")
 
 portfolios_w_return <- mthret %>%

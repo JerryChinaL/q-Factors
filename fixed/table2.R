@@ -5,6 +5,9 @@ library(tidyr)
 min_date <- as.Date("1968-01-01")
 max_date <- as.Date("2018-12-31")
 
+min_date <- as.Date("1911-01-01")
+max_date <- as.Date("2222-12-31")
+
 # Load the data
 factors <- readRDS("data/final_portfolios_fixed.rds")
 
@@ -165,12 +168,6 @@ for (var in variables) {
 
 # Create the LaTeX code for the entire table
 output <- paste0("
-\\documentclass{article}
-\\usepackage{geometry}
-\\geometry{letterpaper, margin=1in}
-\\usepackage{array}
-\\usepackage{booktabs}
-\\begin{document}
 
 \\begin{tabular}{p{1.8cm} p{1.2cm} p{1.2cm} p{1.2cm} p{1.2cm} p{1.2cm} p{1.2cm} p{1.2cm} p{1.2cm} p{1.2cm} p{1cm}}
  \\hline
@@ -180,7 +177,6 @@ output <- paste0("
  \\hline
 \\end{tabular}
 
-\\end{document}
 ")
 
 # Print the output

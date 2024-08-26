@@ -13,7 +13,7 @@ library(tidyr)
 roe_files <- c("./data/6200_2_qi.xlsx", "./data/0024_2_qi.xlsx")
 roe <- bind_rows(lapply(roe_files, read_excel))
 
-at <- read_excel("data/AT_ai.xlsx")
+at <- read_excel("data/AT_2_ai.xlsx")
 
 calculate_yyyymm_vectorized <- function(FYYYYQ, FYRQ, data_source = NULL) {
   year <- floor(FYYYYQ)
@@ -38,15 +38,6 @@ roe <- roe %>%
          BE = ifelse((SHE + TXDITCQ - BVPS) > 0, (SHE + TXDITCQ - BVPS), NaN)) %>%
   mutate(YYYYMM = calculate_yyyymm_vectorized(FYYYYQ, FYRQ))
 
-# # A lengthy process to calculate lag(BE)
-# roe <- roe %>%
-#   arrange(KYGVKEY, YYYYMM) %>% # use cumsum to mark places of FYRQ changes
-#   group_by(KYGVKEY) %>%
-#   mutate(segment = cumsum(FYRQ != lag(FYRQ, default = first(FYRQ)))) %>%
-#   ungroup() %>%
-#   group_by(KYGVKEY, segment) %>% # Within each gvkey and period of stable FYRQ, lag BE
-#   mutate(be_lag1 = lag(BE)) %>%
-#   ungroup()
 
 roe <- roe %>%
   arrange(KYGVKEY, YYYYMM) %>%
@@ -75,16 +66,6 @@ at <- at %>%
     YYYYMM = round(FYYYY * 100 + FYRA)) %>%
   filter(!is.na(YYYYMM))
 
-# # A lengthy process to calculate lag(BE)
-# at <- at %>%
-#   arrange(KYGVKEY, YYYYMM) %>% # use cumsum to mark places of FYRQ changes
-#   group_by(KYGVKEY) %>%
-#   mutate(segment = cumsum(FYRA != lag(FYRA, default = first(FYRA)))) %>%
-#   ungroup() %>%
-#   group_by(KYGVKEY, segment) %>% # Within each gvkey and period of stable FYRQ, lag AT
-#   mutate(at_lag1 = lag(AT)) %>%
-#   ungroup() %>%
-#   select(KYGVKEY, YYYYMM, AT, at_lag1)
 
 at <- at %>%
   arrange(KYGVKEY, YYYYMM) %>% # use cumsum to mark places of FYRQ changes
@@ -108,29 +89,5 @@ final_output <- roe %>%
   select(KYGVKEY, YYYYMM, ROE, IA, RDQ, FYYYYQ) %>%
   filter(!is.na(YYYYMM))
 
-# View(final_output %>% filter(RDQ > YYYYMM*100 + 600))
-# library(lubridate)
-# final_output <- final_output %>%
-#   mutate(YYYYMM_date = as.Date(paste0(YYYYMM, "01"), "%Y%m%d"))
-# 
-# # Convert RDQ to Date format
-# final_output <- final_output %>%
-#   mutate(RDQ_date = as.Date(as.character(RDQ), "%Y%m%d"))
-# 
-# # Filter for rows where RDQ_date is more than 6 months after YYYYMM_date
-# filtered_output <- final_output %>%
-#   filter(RDQ_date > (YYYYMM_date %m+% months(3)))
-# 
-# # View the filtered output
-# View(filtered_output)
-# 
-# View(final_output %>% filter(RDQ == min(roe$RDQ, na.rm = TRUE)))
-# 
-# duplicate_rows <- at %>%
-#   group_by(KYGVKEY, YYYYMM) %>%
-#   filter(n() > 1) %>%
-#   ungroup()
-
-# View(roe %>% filter(KYGVKEY  == 5792))
 
 saveRDS(final_output, "data/ROE_IA.rds")

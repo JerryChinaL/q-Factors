@@ -7,11 +7,12 @@ MKT_data <- read.csv("data/monthly_rf.csv") %>%
   mutate(monthly_date = as.Date(as.character(X * 100 + 1), format = "%Y%m%d")) %>%
   select(monthly_date, r_mkt = Mkt.RF)
 
-r_factors <- read.csv("data/3-factors-fixed.csv") %>%
+r_factors <- read.csv("data/3-factors-fixed_vol.csv") %>%
   mutate(monthly_date = as.Date(monthly_date)) %>%
   select(monthly_date, r_vol = SMB, r_roe = HML, r_ia = CMA) %>%
-  left_join(MKT_data, by = "monthly_date") %>%
-  filter(monthly_date >= as.Date("1968-01-01") & monthly_date <= as.Date("2018-12-31"))
+  left_join(MKT_data, by = "monthly_date") 
+# %>%
+#   filter(monthly_date >= as.Date("1968-01-01") & monthly_date <= as.Date("2018-12-31"))
 
 # Initialize matrices for coefficients and t-statistics
 variables <- c("r_mkt", "r_vol", "r_ia", "r_roe")
