@@ -46,7 +46,7 @@ print(coefficients_matrix)
 print(t_stats_matrix)
 
 # Save results to file
-output_file <- "fixed/data/table5_regression_results.txt"
+output_file <- "tables/table5_regression_results.txt"
 file_conn <- file(output_file, open = "wt")
 
 # Function to write matrices to file

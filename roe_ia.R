@@ -9,8 +9,6 @@ library(readxl)
 library(dplyr)
 library(tidyr)
 
-# The _2 in file names stand for 2024/07 extended data re-downloaded
-
 # All variables needed for ROE
 roe_files <- c("./data/6200_2_qi.xlsx", "./data/0024_2_qi.xlsx")
 roe <- bind_rows(lapply(roe_files, read_excel))
@@ -40,6 +38,7 @@ roe <- roe %>%
          BE = ifelse((SHE + TXDITCQ - BVPS) > 0, (SHE + TXDITCQ - BVPS), NaN)) %>%
   mutate(YYYYMM = calculate_yyyymm_vectorized(FYYYYQ, FYRQ))
 
+
 roe <- roe %>%
   arrange(KYGVKEY, YYYYMM) %>%
   group_by(KYGVKEY) %>%
@@ -67,6 +66,7 @@ at <- at %>%
     YYYYMM = round(FYYYY * 100 + FYRA)) %>%
   filter(!is.na(YYYYMM))
 
+
 at <- at %>%
   arrange(KYGVKEY, YYYYMM) %>% # use cumsum to mark places of FYRQ changes
   group_by(KYGVKEY) %>%
@@ -88,5 +88,6 @@ final_output <- roe %>%
   mutate(IA = ifelse(is.na(at_lag1) | at_lag1 == 0, NA, AT / at_lag1)) %>%
   select(KYGVKEY, YYYYMM, ROE, IA, RDQ, FYYYYQ) %>%
   filter(!is.na(YYYYMM))
+
 
 saveRDS(final_output, "data/ROE_IA.rds")
