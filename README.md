@@ -8,7 +8,7 @@ The q-Factor model extends the traditional Fama-French factor models by introduc
 - Data preparation and processing.
 - Construction of the q-Factor model.
 - Replication of the empirical tests and results.
-- Comparison of the q-Factor model with other asset pricing models.
+- Replacement of Size with Dollar Volume within the q-Factor model.
 
 ## Repository Structure
 
@@ -19,6 +19,32 @@ The q-Factor model extends the traditional Fama-French factor models by introduc
 
 ## Installation
 
-Clone the repository and install the required dependencies.
+This repository is not designed to be run directly after cloning, as the data folder is not present. It's more of an exhibition of my work. Access to CRSP database is required to download the data. Then either refer to the original paper by Hou, Xue, and Zhang, or send me an email to get the specifics of the data items.
 
+With the data folder, the order in which the code should be run is:
 
+1. roe_ia.R
+2. portfolio_step1.R
+3. portfolio_step2.R
+4. Factors.R
+5. factor_comparison.R
+
+## Results
+
+I have made the following tables to evaluate the performance of the replicated model.
+
+This table below shows the value-weighted returns on 5 by 5 sorts.
+
+![Performance Graph](images/table2.png)
+
+This table below shows the distribution stats on the return factors.
+
+![Performance Graph](images/table3.png)
+
+This table below shows the regression of 5 by 5 returns (y) on return factors (X).
+
+![Performance Graph](images/table4.png)
+
+This table below shows the GRS stats and other stats.
+
+![Performance Graph](images/table6.png)
